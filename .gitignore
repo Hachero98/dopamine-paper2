@@ -1,0 +1,26 @@
+# ----- OS / editor -----
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# ----- Generated data: regenerate with experiments/01_forward_verification.py -----
+data/reference/*
+data/observations/*
+!data/reference/.gitkeep
+!data/observations/.gitkeep
+
+# ----- Smoke-test output (--quick); never a result -----
+results/_quick/
+
+# ----- Large per-realization artefacts; the JSON summaries, tables and figures are kept -----
+results/inverse/**/weights_*.npz

@@ -1,0 +1,11 @@
+# Pinned, mutually compatible versions: the stack of Paper 1 (verified with Python 3.11).
+# GPU (Colab A100): install jax[cuda12]==0.10.2 instead of jax==0.10.2.
+# Do not upgrade flax and jax independently of each other.
+numpy>=2.0,<3.0
+scipy>=1.10
+matplotlib>=3.7
+jax==0.10.2
+flax==0.12.5
+optax>=0.2.3
+jaxopt>=0.8
+pytest>=7

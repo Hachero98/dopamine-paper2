@@ -15,6 +15,11 @@ approximation of the posterior under a flat prior on the raw parameters is
 
     cov_raw = noise_sd^2 (J^T J)^-1 .
 
+It is computed from the singular values of J (`laplace_covariance`), never by inverting
+J^T J: that product squares the condition number, and a pseudo-inverse of it silently
+drops a nearly flat direction, which reports an unconstrained parameter as exactly
+known. A parameter that J cannot see at all gets an infinite standard deviation instead.
+
 This is the Paper 1 estimator (`dopamine_pinn.reference`) extended to the
 five-parameter treatment model and to observations at several doses.
 """
@@ -163,23 +168,49 @@ class ReferenceEstimator:
         n, p = result.fun.size, len(self.names)
         rss = float(np.sum(result.fun**2))
         sigma = float(np.sqrt(rss / max(n - p, 1))) if noise_sd is None else float(noise_sd)
-        cov = sigma**2 * np.linalg.pinv(result.jac.T @ result.jac)
-        sd = np.sqrt(np.diag(cov))
+        cov, unconstrained = laplace_covariance(result.jac)
+        cov = sigma**2 * cov
+        sd = np.where(unconstrained, np.inf, np.sqrt(np.diag(cov)))
         z = float(np.sqrt(chi2_distribution.ppf(cfg.CONFIDENCE, 1)))
         estimate = {name: float(to_physical(name, result.x[i])) for i, name in enumerate(self.names)}
         interval = {name: (float(to_physical(name, result.x[i] - z * sd[i])),
                            float(to_physical(name, result.x[i] + z * sd[i]))) for i, name in enumerate(self.names)}
+        with np.errstate(invalid='ignore'):   # an unconstrained parameter has no correlation
+            corr = cov / np.where(np.outer(sd, sd) > 0, np.outer(sd, sd), 1.0)
         return {
             'names': list(self.names),
             'params': {**{k: float(v) for k, v in (fixed or {}).items()}, **estimate},
             'theta': result.x, 'cov_raw': cov, 'sd_raw': sd,
-            'corr': cov / np.where(np.outer(sd, sd) > 0, np.outer(sd, sd), 1.0),
+            'corr': corr,
             'interval': interval,
             'chi2': rss / sigma**2, 'dof': n - p, 'rms': float(np.sqrt(rss / n)),
             'p_value': float(chi2_distribution.sf(rss / sigma**2, n - p)),
             'at_bound': bool(np.any(np.isclose(result.x, lower) | np.isclose(result.x, upper))),
             'jacobian': result.jac, 'n_evaluations': int(result.nfev),
         }
+
+
+def laplace_covariance(jacobian):
+    """(J^T J)^-1 from the singular value decomposition J = U diag(s) V^T.
+
+        (J^T J)^-1 = V diag(1 / s^2) V^T
+
+    Working with s instead of s^2 keeps a weak direction (small but nonzero s) at its
+    true, large variance. A direction with s at rounding level is invisible to the data:
+    it is left out of the matrix, and every parameter it involves is flagged.
+
+    Returns (cov, unconstrained): cov stays finite so that it can be sampled; the caller
+    gives the flagged parameters an infinite standard deviation, so that their interval
+    becomes the whole admissible range rather than a false point. The same convention
+    as `identifiability.fisher_information.cramer_rao_bound`.
+    """
+    jacobian = np.asarray(jacobian, float)
+    _, s, Vt = np.linalg.svd(jacobian, full_matrices=False)
+    visible = s > s.max() * max(jacobian.shape) * np.finfo(float).eps
+    V = Vt[visible].T
+    cov = (V / s[visible]**2) @ V.T
+    unconstrained = np.any(np.abs(Vt[~visible]) > 1e-12, axis=0)
+    return cov, unconstrained
 
 
 def fit_reference(obs, solver, names=PARAM_NAMES, fixed=None, **fit_options):

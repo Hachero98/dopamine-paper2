@@ -182,7 +182,7 @@ python experiments/08_robustness.py --part noise        # or sparsity, electrode
 | `sparsity` | ... and fewer observations? |
 | `electrode` | Does it persist with FSCV-like sampling at one to three sites? (`--with-pinn` also trains the PINN) |
 | `truths` | Is the conclusion specific to the chosen truth, or general over the parameter ranges? |
-| `mismatch` | What happens when the fitted model ignores a release, or holds `k` at a wrong value? |
+| `mismatch` | What happens when the fitted model ignores a release, or holds `k` at a wrong value? The control `k_true` holds `k` at its true value. |
 
 Writes `results/identifiability/robustness_<part>.json` and
 `results/tables/robustness_<part>.csv`. Each row gives the local diagnostics and the

@@ -10,6 +10,10 @@ Parts      noise      E6  noise SD sweep at fixed locations
            mismatch   E8  the fitted model is mildly wrong:
                             'stimulation'  the data contain a release R the estimator ignores
                             'k_low/k_high' the estimator holds k at 0.75 / 1.25 of its value
+                          and one control that is not a mismatch:
+                            'k_true'       the estimator holds k at its true value, which
+                                           separates the effect of fixing k from that of
+                                           fixing it at a wrong value
 
            Each case reports the local diagnostics for the baseline and the multi-dose
            design, and the reference-estimator recovery over noise realizations: errors of
@@ -110,6 +114,7 @@ def run_part(part, run, solver, args):
         return {
             'none': case(solver, scattered, truth, run.seeds),
             'stimulation': case(solver, scattered, truth, run.seeds, data_release=gaussian_stimulation(**STIMULATION)),
+            'k_true': case(solver, scattered, truth, run.seeds, names=free_without_k, fixed={'k': truth['k']}),
             'k_low': case(solver, scattered, truth, run.seeds, names=free_without_k, fixed={'k': 0.75 * truth['k']}),
             'k_high': case(solver, scattered, truth, run.seeds, names=free_without_k, fixed={'k': 1.25 * truth['k']}),
         }

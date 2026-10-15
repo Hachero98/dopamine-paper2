@@ -148,6 +148,29 @@ STAGE_SCHEDULE = {
     'joint': (20_000, 2_000),
 }
 
+# ---- Trial run (option --trial) -------------------------------------------------------
+# A reduced run that checks the whole pipeline end to end in a fraction of the time
+# before the final run. Only the PINN cost and the number of realizations shrink; the
+# solver grid, the observation designs, the network and the noise are the paper values,
+# and the MCMC keeps its full length because its convergence is one of the checks.
+# Trial numbers show that the study works and which way the results go. They are not
+# results: fewer collocation points and shorter training change the PINN errors.
+TRIAL_COLLOCATION = dict(n_domain=10_000, n_initial=400, n_boundary=1_000)
+TRIAL_ADAM_ITERS = 10_000      # single-stage PINN runs (experiments 01 and 03)
+TRIAL_LBFGS_ITERS = 1_000
+TRIAL_STAGE_SCHEDULE = {       # half of STAGE_SCHEDULE
+    'baseline': (10_000, 1_000),
+    'treatment_response': (5_000, 500),
+    'joint': (10_000, 1_000),
+}
+TRIAL_N_REALIZATIONS = 3       # for the reference estimator and the PINN
+
+# ---- Sensitivity of the PINN estimate to its starting point (experiment 09) ------------
+# Each start keeps the uptake ratio Vmax0 / Km of INIT_PARAMS and moves Vmax0 and Km
+# together by a factor. The low-concentration data barely distinguish these starts, so
+# if the final Vmax0 and Km follow the start, the PINN is not identifying them.
+START_FACTORS = {'offset': 1.0, 'Km_x4': 4.0, 'Km_div4': 0.25}
+
 # =====================================================================================
 # 6. Identifiability and uncertainty
 # =====================================================================================

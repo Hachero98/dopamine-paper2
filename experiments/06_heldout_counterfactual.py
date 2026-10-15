@@ -72,7 +72,7 @@ def main():
         records.append(record)
     if not records:
         raise SystemExit('No calibrated realizations found. Run experiments/05_multidose_inverse.py first '
-                         '(with the same --quick setting).')
+                         '(with the same --quick or --trial setting).')
 
     methods = [m for m in ('reference', 'pinn_parameters', 'pinn_network') if any(m in r for r in records)]
     metrics = ('field_rel_l2', 'ATE_rel_l2', 'CE_rel_l2', 'GTE_rel')

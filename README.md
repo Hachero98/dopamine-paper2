@@ -123,9 +123,10 @@ print(report['sigma_min'], report['sd'])
 | 06 | `06_heldout_counterfactual.py` | 6. Prediction of the unseen dose `A = 0.5` | uses 05 |
 | 07 | `07_counterfactual_reliability.py` | 7. Uncertainty of the effect under parameter ambiguity | no |
 | 08 | `08_robustness.py` | Noise, sparsity, electrode geometry, other truths, model mismatch | optional |
+| 09 | `09_start_sensitivity.py` | Does the PINN estimate of Vmax0 and Km follow its starting point? | yes |
 
-Every script accepts `--quick` (smoke test), `--n-realizations N`, `--skip-pinn` and
-`--force`, and resumes from the results already on disk. Details, outputs and how to
+Every script accepts `--quick` (smoke test), `--trial` (a reduced check of the whole
+study before the final run), `--n-realizations N`, `--skip-pinn` and `--force`, and resumes from the results already on disk. Details, outputs and how to
 read them: [docs/EXPERIMENT_GUIDE.md](docs/EXPERIMENT_GUIDE.md).
 
 ### Rules built into the code

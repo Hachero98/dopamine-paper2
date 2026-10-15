@@ -6,9 +6,16 @@ runs as a plain script from any working directory:
     python experiments/01_forward_verification.py
     python experiments/01_forward_verification.py --quick     # seconds, smoke test only
 
-It also defines the two run profiles. `--quick` shrinks every size (grid, network,
-iterations, realizations) so the whole script finishes in about a minute on a CPU; its
-output goes to `results/_quick/` and must never be reported.
+It also defines the three run profiles:
+
+    paper   the settings of config.py; the numbers that are reported
+    trial   `--trial`: fewer collocation points, half-length training and three
+            realizations (config.TRIAL_*), everything else as in the paper. A check of
+            the whole study before the final run; output goes to `results/_trial/`.
+    quick   `--quick`: every size shrunk (grid, network, iterations, realizations) so a
+            script finishes in about a minute on a CPU; output goes to `results/_quick/`.
+
+Trial and quick numbers must never be reported.
 """
 import argparse
 import sys
@@ -35,7 +42,10 @@ from src.utils import io                                      # noqa: E402
 def parse_args(description, **extra):
     """Command line of an experiment. `extra` adds options: name -> dict of argparse keywords."""
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--quick', action='store_true', help='tiny sizes for a smoke test (results are not valid)')
+    sizes = parser.add_mutually_exclusive_group()
+    sizes.add_argument('--quick', action='store_true', help='tiny sizes for a smoke test (results are not valid)')
+    sizes.add_argument('--trial', action='store_true',
+                       help='reduced PINN cost and three realizations, to check the study before the final run')
     parser.add_argument('--n-realizations', type=int, default=None,
                         help='number of noise realizations (default: the value in config.py)')
     parser.add_argument('--skip-pinn', action='store_true', help='run only the solver-based analysis')
@@ -46,7 +56,7 @@ def parse_args(description, **extra):
 
 
 def profile(args):
-    """Sizes of the run: the paper settings, or the smoke-test settings under --quick."""
+    """Sizes of the run: the paper settings, or the --trial or --quick settings."""
     if args.quick:
         return SimpleNamespace(
             name='quick', results=cfg.RESULTS_DIR / '_quick',
@@ -57,6 +67,19 @@ def profile(args):
             schedule={stage: TrainConfig.quick() for stage in cfg.STAGE_SCHEDULE},
             profile_points=5, n_samples=8, batch_size=4, mcmc=dict(n_chains=4, n_steps=40, burn_in=20),
             verification=dict(nx_list=(11, 21, 41), dt_list=(0.1, 0.05, 0.025), nx=21, order_tolerance=0.5))
+    if args.trial:
+        n = args.n_realizations or cfg.TRIAL_N_REALIZATIONS
+        short = dict(adam_iters=cfg.TRIAL_ADAM_ITERS, lbfgs_iters=cfg.TRIAL_LBFGS_ITERS)
+        return SimpleNamespace(
+            name='trial', results=cfg.RESULTS_DIR / '_trial',
+            solver=dict(nx=cfg.NX_FD, dt=cfg.DT_FD), n_obs=cfg.N_OBS,
+            seeds=cfg.OBS_SEEDS[:n], pinn_seeds=cfg.OBS_SEEDS[:n],
+            layers=cfg.LAYERS, collocation=dict(cfg.TRIAL_COLLOCATION),
+            forward=TrainConfig(weights=cfg.W_FORWARD, **short), inverse=TrainConfig(**short),
+            schedule={stage: TrainConfig(adam_iters=adam, lbfgs_iters=lbfgs)
+                      for stage, (adam, lbfgs) in cfg.TRIAL_STAGE_SCHEDULE.items()},
+            profile_points=cfg.PROFILE_POINTS, n_samples=cfg.N_POSTERIOR_SAMPLES, batch_size=8, mcmc={},
+            verification={})
     return SimpleNamespace(
         name='paper', results=cfg.RESULTS_DIR,
         solver=dict(nx=cfg.NX_FD, dt=cfg.DT_FD), n_obs=cfg.N_OBS,
@@ -77,6 +100,8 @@ def start(title, args):
     print('=' * 88)
     if args.quick:
         print('QUICK MODE: smoke test only. These numbers are not results.')
+    if args.trial:
+        print('TRIAL RUN: reduced PINN cost and few realizations. A check of the study, not results.')
     return run, make_fd_solver(**run.solver)
 
 

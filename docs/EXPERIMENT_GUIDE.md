@@ -1,8 +1,9 @@
 # Experiment guide
 
 How to run the study, what each experiment answers, what it writes, and how to read
-the output. The eight scripts follow the seven-stage workflow of the research guide and
-its experiment matrix E1 to E8.
+the output. Scripts 01 to 08 follow the seven-stage workflow of the research guide and
+its experiment matrix E1 to E8; script 09 checks whether the PINN estimates come from
+the data or from the starting point.
 
 ---
 
@@ -33,6 +34,7 @@ python experiments/01_forward_verification.py --quick # smoke test, about 1 min
 | Option | Effect |
 |---|---|
 | `--quick` | tiny sizes everywhere. Checks that the script runs; **the numbers are not results**. Output goes to `results/_quick/`. |
+| `--trial` | the paper grid, designs and network, but 10 000 collocation points, half-length training and three realizations (`TRIAL_*` in `config.py`). Checks the whole study in a fraction of the time before the final run; **the numbers are not results**. Output goes to `results/_trial/`. |
 | `--n-realizations N` | use the first `N` noise realizations instead of the number in `config.py` |
 | `--skip-pinn` | solver-based analysis only (no network training) |
 | `--force` | recompute results that are already on disk |
@@ -46,13 +48,15 @@ disconnect, rerun the same cell.
 
 ### Runtime
 
-What has been measured so far is the CPU cost of the solver-based parts (Apple M4 Pro):
-one solve takes 0.5 s, one Jacobian of a four-dose design 7 s, one five-parameter
-reference fit 1 to 2 minutes. Nothing has been timed on an A100 yet. From Paper 1, one
-inverse PINN run of 20 000 Adam iterations with 30 000 collocation points took about
-3 minutes on an A100; a staged run here has 50 000 Adam iterations and a four-input
-network, so expect on the order of 10 minutes per realization. Use
-`--n-realizations 2` for a first timed pass before launching the full set.
+Measured on a Colab A100 (October 2026) with the paper settings: one forward PINN run
+3.3 minutes, one baseline inverse PINN run (experiment 03) about 3.2 minutes, one staged
+multi-dose run (experiments 04, 05, 09) about 7.3 minutes. The PINN cost grows roughly
+in proportion to the number of collocation points, each of which needs second
+derivatives in float64. On a CPU (Apple M4 Pro) one solve takes 0.5 s, one Jacobian of a
+four-dose design 7 s, one five-parameter reference fit 1 to 2 minutes.
+
+Run the study once with `--trial` before the final run. It writes to `results/_trial/`,
+so it never mixes with the results that are reported.
 
 ---
 
@@ -67,6 +71,7 @@ network, so expect on the order of 10 minutes per realization. Use
 06 held-out counterfactual   needs 05; predicts A = 0.5
 07 counterfactual reliability   solver only
 08 robustness                solver only by default
+09 start sensitivity         PINN only; does the PINN estimate follow its starting point?
 ```
 
 02, 04 (steps 1 and 2), 07 and 08 need no network training. Running them first, with
@@ -187,6 +192,19 @@ python experiments/08_robustness.py --part noise        # or sparsity, electrode
 Writes `results/identifiability/robustness_<part>.json` and
 `results/tables/robustness_<part>.csv`. Each row gives the local diagnostics and the
 recovery of the two rate combinations and of the global effect over noise realizations.
+
+### 09 Start sensitivity of the PINN
+
+```bash
+python experiments/09_start_sensitivity.py --trial    # three realizations x three starts
+```
+
+| | |
+|---|---|
+| **Question** | Vmax0 and Km are not separately identifiable (experiments 02 and 03), yet the PINN returns them close to the truth. Is that the data, or the starting point, which lies 20 % from the truth? |
+| **Does** | The staged PINN of experiment 05 from three starts that share the uptake ratio Vmax0 / Km but differ by a factor 16 in Vmax0 and Km (`START_FACTORS` in `config.py`). |
+| **Writes** | `results/inverse/start_sensitivity/<start>_seed_<seed>.json`, `results/tables/start_sensitivity.csv` |
+| **Read it as** | The printed "spread across starts" is the ratio of the largest to the smallest final value for one realization. Near 1: the start does not matter. Near 16 for Vmax0 and Km, with the same data misfit: the PINN keeps its start along the flat direction and does not identify Vmax0 and Km (decision rule 3). Only the combinations can then be reported. |
 
 ---
 

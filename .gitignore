@@ -19,8 +19,9 @@ data/observations/*
 !data/reference/.gitkeep
 !data/observations/.gitkeep
 
-# ----- Smoke-test output (--quick); never a result -----
+# ----- Smoke-test (--quick) and trial (--trial) output; never a result -----
 results/_quick/
+results/_trial/
 
 # ----- Large per-realization artefacts; the JSON summaries, tables and figures are kept -----
 results/inverse/**/weights_*.npz

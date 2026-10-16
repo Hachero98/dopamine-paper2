@@ -171,4 +171,4 @@ interpolate between the training doses.
 | `PROFILE_MAX_EVALUATIONS` | 40 | cap on solver calls of each constrained fit |
 | `CONFIDENCE` | 0.95 | level of all intervals and bands |
 | `N_POSTERIOR_SAMPLES` | 200 | parameter vectors propagated into the effect |
-| `MCMC_CHAINS`, `MCMC_STEPS`, `MCMC_BURN_IN` | 16, 2000, 500 | Metropolis sampler of experiment 07; raise the steps if R-hat exceeds about 1.1 |
+| `MCMC_CHAINS`, `MCMC_STEPS`, `MCMC_BURN_IN` | 16, 8000, 2000 | Metropolis sampler of experiment 07; raise the steps if R-hat exceeds about 1.1 |

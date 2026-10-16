@@ -183,9 +183,10 @@ N_POSTERIOR_SAMPLES = 200      # parameter samples propagated into the counterfa
 # Metropolis sampling of the posterior through the reference solver (experiment 07).
 # The posterior is flat along the weak directions, so a random walk mixes slowly: check the
 # R-hat values that experiment 07 prints and raise MCMC_STEPS if any exceeds about 1.1.
+# 2 000 steps per chain gave R-hat 1.2 to 1.6 for k, so the chains are four times longer.
 MCMC_CHAINS = 16               # parallel chains, advanced by one batched solver call per step
-MCMC_STEPS = 2_000             # steps per chain
-MCMC_BURN_IN = 500             # steps discarded at the start of every chain (step size is tuned here)
+MCMC_STEPS = 8_000             # steps per chain
+MCMC_BURN_IN = 2_000           # steps discarded at the start of every chain (step size is tuned here)
 
 # =====================================================================================
 # 7. Paths
